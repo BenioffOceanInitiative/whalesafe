@@ -1,11 +1,19 @@
 # s4w
-Ships for Whales coordinating repository
+
+Ships for Whales ([ships4whales.org](http://ships4whales.org)) coordinating repository.
 
 Contents:
+
 <!-- 
 To update table of contents run: `cat README.md | ./gh-md-toc -` 
 Uses: https://github.com/ekalinin/github-markdown-toc
 -->
+* [Repositories](#repositories)
+* [Scripts](#scripts)
+   * [Process AIS](#process-ais)
+   * [Email Companies](#email-companies)
+* [Reports](#reports)
+* [Applications](#applications)
 
 ## Repositories
 
@@ -45,8 +53,12 @@ Processes:
 
 ### Email Companies
 
-TODO, see [Develop email templates and mailers · Issue #6 · BenioffOceanInitiative/s4w](https://github.com/BenioffOceanInitiative/s4w/issues/6).
+TODO, see [#6: Develop email templates and mailer](https://github.com/BenioffOceanInitiative/s4w/issues/6).
 
 ## Reports
 
 TODO
+
+## Applications
+
+See [**s4w-apps**](https://github.com/BenioffOceanInitiative/s4w-apps).
