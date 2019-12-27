@@ -1,6 +1,14 @@
 # s4w
 Ships for Whales coordinating repository
 
+Contents:
+<!-- 
+To update table of contents run: `cat README.md | ./gh-md-toc -` 
+Uses: https://github.com/ekalinin/github-markdown-toc
+-->
+
+## Repositories
+
 Moving up stack based on dependencies, here are the Github repositories for this project:
 
 - [**s4w-docker**](https://github.com/BenioffOceanInitiative/s4w-docker)<br>
@@ -14,3 +22,22 @@ Moving up stack based on dependencies, here are the Github repositories for this
 - [**s4w-apps**](https://github.com/BenioffOceanInitiative/s4w-apps)<br>
   Shiny applications for interactive user interfaces to data
   
+## Scripts
+
+Scripts, some to setup to run at regular intervals (ie cron jobs) on the server.
+
+### Fetch AIS
+
+1.  [logfile](https://github.com/BenioffOceanInitiative/s4w_ais_manager/blob/master/R/logfile_funs.R)
+2.  [crawlers](https://github.com/BenioffOceanInitiative/s4w_ais_manager/blob/master/R/crawlers.R)
+3.  [parsers](https://github.com/BenioffOceanInitiative/s4w_ais_manager/blob/master/R/readers.R)
+4.  [database](https://github.com/BenioffOceanInitiative/s4w_ais_manager/blob/master/R/db_init_lite.R)
+
+
+### Email Companies
+
+TODO, see [Develop email templates and mailers · Issue #6 · BenioffOceanInitiative/s4w](https://github.com/BenioffOceanInitiative/s4w/issues/6).
+
+## Reports
+
+TODO
