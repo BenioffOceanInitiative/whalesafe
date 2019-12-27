@@ -26,13 +26,22 @@ Moving up stack based on dependencies, here are the Github repositories for this
 
 Scripts, some to setup to run at regular intervals (ie cron jobs) on the server.
 
-### Fetch AIS
+### Process AIS
+
+[s4w_ais_manager](https://github.com/BenioffOceanInitiative/s4w_ais_manager):
 
 1.  [logfile](https://github.com/BenioffOceanInitiative/s4w_ais_manager/blob/master/R/logfile_funs.R)
 2.  [crawlers](https://github.com/BenioffOceanInitiative/s4w_ais_manager/blob/master/R/crawlers.R)
 3.  [parsers](https://github.com/BenioffOceanInitiative/s4w_ais_manager/blob/master/R/readers.R)
 4.  [database](https://github.com/BenioffOceanInitiative/s4w_ais_manager/blob/master/R/db_init_lite.R)
 
+Processes:
+
+1. Fetch AIS data
+1. Create segments
+1. Intersect with VSR zones
+1. Calculate % compliance
+1. Push to geodatabase
 
 ### Email Companies
 
