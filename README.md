@@ -32,7 +32,7 @@ Moving up stack based on dependencies, here are the Github repositories for this
   
 ## Scripts
 
-Scripts, some to setup to run at regular intervals (ie cron jobs) on the server.
+Scripts, some to setup to run at regular intervals (ie cron jobs every day / 15  minutes) on the server.
 
 ### Process AIS
 
