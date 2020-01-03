@@ -1,30 +1,122 @@
+library(here)
+library(glue)
+library(DBI)
+library(dplyr)
+library(lubridate)
+
+#library(s4wr)                 # normal:    load installed library
+devtools::load_all("../s4wr") # developer: load source library
+
+# connect to database
+db_yml <- here(".s4w_amazon_rds.yml")
+con <- db_connect(db_yml)
+#dbListTables(con)
+
+# get most recent data: date_last
+
+tbl_ais_data <- tbl(con, "ais_data")
+
+date_end <- dbGetQuery(con, "SELECT MAX(datetime) FROM ais_data;") %>% pull(max)
+# 2019-11-11 18:54:29 PST
+
+date_end_new <- date_end - days(2)
+# "2019-11-09 18:54:29 PST"
+
+# for sake of processing a chunk, delete last couple days
+dbSendQuery(con, glue("DELETE FROM ais_data WHERE datetime >= TIMESTAMP '{date_end_new}'"))
+# Changed: 40800
+
+# log_df <- tbl(con, "log_df") %>% collect()
+# 
+# log_df %>% 
+#   filter(url >= "https://ais.sbarc.org/logs_delimited/2019/191109/AIS_SBARC_191109-18.txt") %>% 
+#   pull(url) # 66
+
+dbSendQuery(con, glue("DELETE FROM log_df WHERE url > 'https://ais.sbarc.org/logs_delimited/2019/191109/AIS_SBARC_191109-18.txt'"))
+# Changed: 66
+
+date_end <- dbGetQuery(con, "SELECT MAX(datetime) FROM ais_data;") %>% pull(max)
+# 2019-11-09 10:52:04 PST
+
+url_end <- dbGetQuery(con, "SELECT MAX(url) FROM log_df;") %>% pull(max)
+# https://ais.sbarc.org/logs_delimited/2019/191109/AIS_SBARC_191109-18.txt
+
+# get logfiles since new date_last ----
+d_urls <- tibble(
+  url = get_ais_urls(url_end))
+
+
+# process logfiles into df ----
+
+#library(tictoc)
+# tic()
+# d_urls_data1 <- d_urls[1:10,] %>% 
+#   mutate(
+#     data = purrr::map(url, whale.read, log_df = log_df, assign_back = TRUE))
+# toc() # 7.506 | 4.765 sec elapsed
+
+library(furrr)
+library(purrr)
+# Warning message:
+#   [ONE-TIME WARNING] Forked processing ('multicore') is disabled in future (>= 1.13.0) when running R from RStudio, because it is considered unstable. Because of this, plan("multicore") will fall back to plan("sequential"), and plan("multiprocess") will fall back to plan("multisession") - not plan("multicore") as in the past. For more details, how to control forked processing or not, and how to silence this warning in future R sessions, see ?future::supportsMulticore 
+options(future.fork.enable = T)
+plan(multiprocess)
+
+#tic()
+d_urls <- d_urls %>% 
+  mutate(
+    data = furrr::future_map(url, whale.read, log_df = log_df, assign_back = TRUE))
+#toc() # 0.891 | 0.885 sec elapsed
+
+# TODO: check whale.read() for these issues...
+# Warning messages:
+#   1: In if (!grepl("\\.", t, perl = TRUE)) { :
+#     the condition has length > 1 and only the first element will be used
+#   2: In if (!grepl("\\.", ts, perl = TRUE)) { :
+#     the condition has length > 1 and only the first element will be used
+
+# TODO: check if duplicate URLs in log_df
+log_df %>% arrange(url) %>% tail(100) %>% View()
+
+# write df to database ----
+library(tidyr)
+ais_data_new <- d_urls %>% 
+  tidyr::unnest(data) %>% 
+  select(-url)
+  # TODO: include url in ais_data for provenance in future
+
+dbWriteTable(con, "ais_data", ais_data_new, append=T)
+
+
+# proceed with [2020-01-02 BB, SG dev sesh in notes | ship-strike - Google Docs](https://docs.google.com/document/d/1TcMtULh-UAnhZrSQ1k7V416BeQlg_cCRnyrOY2RI_Xo/edit#heading=h.k67mphe8vvyg)
+
 # Libraries  --------------------------------------------------------------
-libs <- list(
-  utils = "Reading the URL's and parsing on the ';'.. this is part ofbase functions but whatevs",
-  stringi = "for all regex needs etc",
-  jsonlite = "For rbind_pages function when combining data.frames",
-  xml2 = "for crawling and finding the links",
-  dplyr = "for the %>%, which is from magrittr, but whatever. Also for sql-like pipe commands and mutations",
-  RPostgreSQL = "DB connections",
-  DBI = "connections",
-  RPostgres = "db functions"
-)
+# libs <- list(
+#   utils = "Reading the URL's and parsing on the ';'.. this is part ofbase functions but whatevs",
+#   stringi = "for all regex needs etc",
+#   jsonlite = "For rbind_pages function when combining data.frames",
+#   xml2 = "for crawling and finding the links",
+#   dplyr = "for the %>%, which is from magrittr, but whatever. Also for sql-like pipe commands and mutations",
+#   RPostgreSQL = "DB connections",
+#   DBI = "connections",
+#   RPostgres = "db functions"
+# )
 
 ## List of all your libraries
-all_packs <- row.names(utils::installed.packages())
+#all_packs <- row.names(utils::installed.packages())
 
 ## Checks if the library needed is installed, if it is, loads it and returns true, if it's not, returns a string
 ## telling you to install it
-load_or_die <- lapply(names(libs), function(i){
-  i_have_it <- i %in% all_packs
-  if(!i_have_it){
-    o <- FALSE
-  }else {
-    o <- library(i, character.only = TRUE, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE)
-    o <- TRUE
-  }
-  return(setNames(list(o), i))
-})
+# load_or_die <- lapply(names(libs), function(i){
+#   i_have_it <- i %in% all_packs
+#   if(!i_have_it){
+#     o <- FALSE
+#   }else {
+#     o <- library(i, character.only = TRUE, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE)
+#     o <- TRUE
+#   }
+#   return(setNames(list(o), i))
+# })
 
 ## Outputs a data.frame of our above function which looks like:
 ##
