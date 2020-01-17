@@ -3,6 +3,7 @@ library(glue)
 library(DBI)
 library(dplyr)
 library(lubridate)
+here <- here::here
 
 #library(s4wr)                 # normal:    load installed library
 devtools::load_all("../s4wr") # developer: load source library
@@ -87,8 +88,53 @@ ais_data_new <- d_urls %>%
 
 dbWriteTable(con, "ais_data", ais_data_new, append=T)
 
-
 # proceed with [2020-01-02 BB, SG dev sesh in notes | ship-strike - Google Docs](https://docs.google.com/document/d/1TcMtULh-UAnhZrSQ1k7V416BeQlg_cCRnyrOY2RI_Xo/edit#heading=h.k67mphe8vvyg)
+
+
+
+# 2020-01-17 proceeding BB, SG with SF_DF step from s4wr / seg_filter.R
+
+#dbListTables(con)
+ais_segments <- tbl(con, "ais_segments")
+vsr_zones <- tbl(con, "vsr_zones")
+
+ais_segments
+names(vsr_zones)
+
+# get ais_segments within the vsr_zones restricted by date & geom (st_within)
+res <- dbGetQuery(
+  con,
+  # [PostGIS — Getting intersections the faster way](https://postgis.net/2014/03/14/tip_intersection_faster/)
+  "
+  SELECT s.name, 
+  s.beg_dt, s.beg_lon, s.beg_lat,
+  s.end_dt, s.end_lon, s.end_lat,
+  z.gid
+  , CASE 
+  WHEN 
+    ST_CoveredBy(s.geometry, z.geom)
+    THEN s.geometry 
+    ELSE 
+  ST_Multi(
+    ST_Intersection(s.geometry, z.geom)
+  ) END AS geometry 
+  FROM ais_segments AS s
+  INNER JOIN vsr_zones AS z
+  ON ST_Intersects(s.geometry, z.geom)
+  WHERE 
+    s.datetime::date <= z.date_end AND
+    s.datetime >= z.date_beg;")
+
+# TODO: adjust beg/end time/location after segment intersected w/ zone
+# TODO: write to a new table SELECT (*) AS ais_vsr_segments
+
+
+# update ais_segments with attribute of applicable vsr_zone
+# todo: st_intersection & recalc length & time based on original segment
+# todo: write ais_segments to ais_vsr_segments
+
+vsr_zones = sf::st_read(dsn = con, EWKB = TRUE, query = "select * from vsr_zones;")
+
 
 # Libraries  --------------------------------------------------------------
 # libs <- list(
