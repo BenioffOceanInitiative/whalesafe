@@ -102,6 +102,13 @@ ais_segments
 names(vsr_zones)
 
 # get ais_segments within the vsr_zones restricted by date & geom (st_within)
+# answers-header
+
+# [sql - How to compare dates in datetime fields in Postgresql? - Stack Overflow](https://stackoverflow.com/questions/19469154/how-to-compare-dates-in-datetime-fields-in-postgresql#answers-header)
+# SELECT *
+#   FROM table
+# WHERE update_date >= '2013-05-03'::date
+# AND update_date < ('2013-05-03'::date + '1 day'::interval);
 res <- dbGetQuery(
   con,
   # [PostGIS — Getting intersections the faster way](https://postgis.net/2014/03/14/tip_intersection_faster/)
