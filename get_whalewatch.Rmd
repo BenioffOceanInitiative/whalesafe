@@ -1,0 +1,150 @@
+---
+title: "get_whalewatch"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+```
+
+## download latest
+
+```{r}
+library(here)
+library(glue)
+library(fs)
+library(usethis)
+
+data_dir   <- here("data/whalewatch2") 
+latest_dir <- path(data_dir, "latest")
+latest_url <- "https://www.dropbox.com/sh/2gon6zely44j34v/AABMzqFBLnGfUV5V7dROfeEca?dl=1"
+
+if (!dir_exists(latest_dir))
+  use_zip(latest_url, data_dir, cleanup = T)
+```
+
+## read and write raster, vector
+
+- [Reading and writing spatial data — R Spatial](https://rspatial.org/raster/spatial/5-files.html#reading-1)
+
+```{r}
+library(raster)
+library(sf)
+
+bbox <- extent(c(-122.1, -118.5, 32.72, 34.90))
+
+latest_grd <- list.files(
+  latest_dir, "blwh_ensemble_[0-9-]+\\.grd", full.names = T)
+latest_tif <- path_ext_set(latest_grd, "tif")
+smooth_tif <- glue("{path_ext_remove(latest_grd)}_smooth5.tif")
+latest_geo <- path_ext_set(latest_grd, "geojson")
+
+# read raster grd
+latest_r <- raster(latest_grd) %>% 
+  crop(bbox)
+
+# write raster tif
+writeRaster(latest_r, latest_tif, overwrite = T)
+
+# write polygons
+rasterToPolygons(latest_r) %>% 
+  st_as_sf() %>% 
+  write_sf(latest_geo, delete_dsn = T)
+```
+
+## plot, raster static
+
+```{r}
+plot(latest_r)
+```
+
+## plot, raster leaflet
+
+- [Leaflet for R - Raster Images](https://rstudio.github.io/leaflet/raster.html)
+
+```{r}
+library(leaflet)
+
+latest_r <- raster(latest_tif)
+
+col_pal <- colorNumeric(
+  "Spectral", values(latest_r), na.color = "transparent")
+
+map_raster <- leaflet() %>% 
+  addProviderTiles(providers$Esri.OceanBasemap) %>% 
+  addRasterImage(
+    latest_r, colors = "Spectral", opacity = 0.7) %>%
+  addLegend(
+    pal = col_pal, values = values(latest_r), 
+    title = glue("Blue whales<br>{basename(latest_tif)}"))
+map_raster
+```
+
+## plot, geojson leaflet
+
+```{r}
+latest_ply <- read_sf(latest_geo)
+
+pal <- colorNumeric("Spectral", domain = latest_ply$layer)
+
+map_ply <- leaflet() %>% 
+  addProviderTiles(providers$Esri.OceanBasemap) %>% 
+  addPolygons(
+    data = latest_ply, 
+    fillColor = ~pal(layer), fillOpacity = 0.7, 
+    weight = 0.1, color = "white") %>% 
+  addLegend(
+    pal = col_pal, values = values(latest_r), 
+    title = glue("Blue whales<br>{basename(latest_geo)}"))
+map_ply
+```
+
+## smooth raster
+
+- [Natural Earth](http://www.naturalearthdata.com/)
+
+```{r}
+library(rnaturalearth)
+library(dplyr)
+library(fasterize)
+
+# prepare raster mask 
+states_sf <- ne_states(returnclass = "sf") %>% 
+  filter(name %in% c(
+    "British Columbia", 
+    "Washington", "Oregon", "California", 
+    "Baja California")) %>% 
+  select(name) # plot(states)
+
+# disaggregate into smaller pixels, run focal window to smooth out
+smooth_r <- disaggregate(latest_r, 5) %>% 
+  focal(w = matrix(1,5,5), fun = mean, na.rm = T, pad = T)
+states_r <- fasterize(states_sf, smooth_r)
+smooth_r <- mask(smooth_r, states_r, maskvalue = 1)
+writeRaster(smooth_r, smooth_tif, overwrite = T)
+
+smooth_r <- raster(smooth_tif)
+
+map_smooth <- leaflet() %>% 
+  addProviderTiles(providers$Esri.OceanBasemap) %>% 
+  addRasterImage(smooth_r, colors = "Spectral", opacity = 0.7) %>%
+  addLegend(
+    pal = col_pal, values = values(smooth_r), 
+    title = glue("Blue whales<br>{basename(smooth_tif)}"))
+map_smooth
+```
+
+## compare maps
+
+```{r}
+library(leafsync)
+
+sync(map_raster, map_ply, map_smooth)
+```
