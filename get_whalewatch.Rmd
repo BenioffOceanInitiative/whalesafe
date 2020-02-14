@@ -88,7 +88,9 @@ map_raster <- leaflet() %>%
     latest_r, colors = "Spectral", opacity = 0.7) %>%
   addLegend(
     pal = col_pal, values = values(latest_r), 
-    title = glue("Blue whales<br>{basename(latest_tif)}"))
+    title = glue(
+      "Blue whales<br>
+      <code style='font-size: 11px;'>*.tif</code>"))
 map_raster
 ```
 
@@ -107,7 +109,9 @@ map_ply <- leaflet() %>%
     weight = 0.1, color = "white") %>% 
   addLegend(
     pal = col_pal, values = values(latest_r), 
-    title = glue("Blue whales<br>{basename(latest_geo)}"))
+    title = glue(
+      "Blue whales<br>
+      <code style='font-size: 11px;'>*.geojson</code>"))
 map_ply
 ```
 
@@ -142,7 +146,9 @@ map_smooth <- leaflet() %>%
   addRasterImage(smooth_r, colors = "Spectral", opacity = 0.7) %>%
   addLegend(
     pal = col_pal, values = values(smooth_r), 
-    title = glue("Blue whales<br>{basename(smooth_tif)}"))
+    title = glue(
+      "Blue whales<br>
+      <code style='font-size: 11px;'>*_smooth.tif</code>"))
 map_smooth
 ```
 
