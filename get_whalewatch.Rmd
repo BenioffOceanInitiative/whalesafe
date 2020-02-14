@@ -59,6 +59,11 @@ rasterToPolygons(latest_r) %>%
   write_sf(latest_geo, delete_dsn = T)
 ```
 
+Files generated:
+
+* [`blwh_ensemble_2020-02-11.tif`](https://github.com/BenioffOceanInitiative/whalesafe/blob/master/data/whalewatch2/latest/blwh_ensemble_2020-02-11.tif)
+* [`blwh_ensemble_2020-02-11.geojson`](https://github.com/BenioffOceanInitiative/whalesafe/blob/master/data/whalewatch2/latest/blwh_ensemble_2020-02-11.geojson)
+
 ## plot, raster static
 
 ```{r}
@@ -140,6 +145,11 @@ map_smooth <- leaflet() %>%
     title = glue("Blue whales<br>{basename(smooth_tif)}"))
 map_smooth
 ```
+
+File generated:
+
+* [`blwh_ensemble_2020-02-11_smooth5.tif`](https://github.com/BenioffOceanInitiative/whalesafe/blob/master/data/whalewatch2/latest/blwh_ensemble_2020-02-11_smooth5.tif)
+
 
 ## compare maps
 
