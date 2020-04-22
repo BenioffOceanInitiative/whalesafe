@@ -1,0 +1,107 @@
+---
+title: "simplify daily ship segments"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r cars}
+library(here) # TODO: depend on here in whalesafe4r
+library(glue)
+library(DBI)
+library(dplyr)
+library(sf)
+library(bigrquery)
+library(leaflet)
+library(rmapshaper)
+
+service_account_json <- "/home/admin/Benioff Ocean Initiative-454f666d1896.json"
+
+bq_auth(path = service_account_json)
+
+con <- dbConnect(
+  bigquery(),
+  project = "benioff-ocean-initiative",
+  dataset = "clustered_datasets",
+  billing = "benioff-ocean-initiative")
+
+dbListTables(con)
+```
+
+## Get Example Segment
+
+```{r pressure, echo=FALSE}
+sql <- "
+  SELECT mmsi, operator, day, distance_km_daysum, ST_AsGeoJSON(geom_line) as geom_txt
+  FROM clustered_datasets.gfw_ihs_segments_daily
+  WHERE day > '2017-01-01'
+  ORDER BY distance_km_daysum DESC
+  LIMIT 10;"
+segs <- dbGetQuery(con, sql)
+
+segs <- segs %>% 
+  mutate(
+    geom = do.call(rbind, lapply(segs$geom_txt, read_sf))$geometry) %>% 
+  st_set_geometry("geom") %>% 
+  select(-geom_txt)
+
+leaflet() %>% 
+  addProviderTiles(providers$Esri.OceanBasemap) %>% 
+  #addTiles() %>% 
+  addPolylines(data = segs)
+```
+
+## Simplify Top 10
+
+```{r}
+segs_ms05 <- ms_simplify(segs, keep = 0.05)
+
+segs_st01 <- st_simplify(segs, dTolerance = 0.01)
+
+leaflet() %>% 
+  addProviderTiles(providers$Esri.OceanBasemap) %>% 
+  addPolylines(data=segs     , group="segs"     , color="blue", weight=2, opacity = 0.4) %>% 
+  addPolylines(data=segs_ms05, group="segs_ms05", color="red", weight=2, opacity = 0.4) %>% 
+  addPolylines(data=segs_st01, group="segs_st01", color="green", weight=2, opacity = 0.4) %>% 
+  addLayersControl(
+    overlayGroups = c("segs", "segs_ms05", "segs_st01"),
+    options = layersControlOptions(collapsed = FALSE))
+```
+
+
+## Simplify 1 Week
+
+```{r}
+sql <- "
+  -- SELECT * EXCEPT (geom_line), ST_ASTEXT(geom_line) as geom_wkt
+  SELECT mmsi, operator, day, distance_km_daysum, ST_ASTEXT(geom_line) as geom_wkt
+  FROM clustered_datasets.gfw_ihs_segments_daily
+  WHERE day >= '2019-10-01' AND day <= '2019-10-07'"
+segs_0 <- dbGetQuery(con, sql) # 678 rows
+
+segs_0 %>% select(mmsi, operator, day, distance_km_daysum) %>% View()
+
+segs <- filter(segs_0, nchar(geom_txt) != 0) # 124 rows!
+
+segs_funk <- segs_0 %>% 
+  anti_join(segs, by = c("mmsi", "operator", "day"))
+# View(segs_funk)
+#unique(segs_funk$mmsi)
+
+
+segs <- segs_0 %>% 
+  mutate(
+    geom = do.call(rbind, lapply(segs_0$geom_wkt, read_sf))$geometry) %>% 
+  st_set_geometry("geom") %>% 
+  select(-geom_txt)
+
+segs_st01 <- st_simplify(segs, dTolerance = 0.01)
+
+```
+
