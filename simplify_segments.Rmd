@@ -17,7 +17,7 @@ library(glue)
 library(DBI)
 library(dplyr)
 library(sf)
-library(bigrquery)
+library(bigrquery) # devtools::install_github("r-dbi/bigrquery")
 library(leaflet)
 library(rmapshaper)
 
@@ -83,11 +83,13 @@ sql <- "
   SELECT mmsi, operator, day, distance_km_daysum, ST_ASTEXT(geom_line) as geom_wkt
   FROM clustered_datasets.gfw_ihs_segments_daily
   WHERE day >= '2019-10-01' AND day <= '2019-10-07'"
-segs_0 <- dbGetQuery(con, sql) # 678 rows
+segs_0 <- dbGetQuery(con, sql)
+nrow(segs_0) # 678
 
 segs_0 %>% select(mmsi, operator, day, distance_km_daysum) %>% View()
 
-segs <- filter(segs_0, nchar(geom_txt) != 0) # 124 rows!
+segs <- filter(segs_0, nchar(geom_wkt) != 0) # 124 rows!
+nrow(segs) # 149!
 
 segs_funk <- segs_0 %>% 
   anti_join(segs, by = c("mmsi", "operator", "day"))
